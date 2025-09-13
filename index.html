@@ -41,6 +41,13 @@
       z-index: 20;
       min-width: 40px;
       min-height: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #000000;
+    }
+    .textbox.selected {
+      border: 2px solid #ff6b6b;
+      box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
     }
     #controls {
       margin-bottom: 0.5em;
@@ -54,6 +61,36 @@
     <button id="add-whiteout" disabled>Add Whiteout</button>
     <button id="add-textbox" disabled>Add Text Box</button>
     <button id="save-pdf" disabled>Save PDF</button>
+  </div>
+  
+  <div id="text-styling" style="display: none; margin: 1em 0; padding: 1em; border: 1px solid #ccc; background: #f9f9f9;">
+    <h3>Text Styling</h3>
+    <div style="display: flex; gap: 1em; align-items: center; flex-wrap: wrap;">
+      <div>
+        <label for="font-family">Font Family:</label>
+        <select id="font-family">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Helvetica">Helvetica</option>
+          <option value="Comic Sans MS">Comic Sans MS</option>
+        </select>
+      </div>
+      <div>
+        <label for="font-size">Font Size:</label>
+        <input type="number" id="font-size" value="12" min="8" max="72" style="width: 60px;">
+      </div>
+      <div>
+        <label for="text-color">Text Color:</label>
+        <input type="color" id="text-color" value="#000000">
+      </div>
+      <div>
+        <button id="apply-styling" disabled>Apply to Selected</button>
+        <button id="clear-selection">Clear Selection</button>
+      </div>
+    </div>
   </div>
   
   <div id="pdf-container">
@@ -74,6 +111,16 @@
     const pdfContainer = document.getElementById('pdf-container');
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
+    
+    // Text styling controls
+    const textStylingDiv = document.getElementById('text-styling');
+    const fontFamilySelect = document.getElementById('font-family');
+    const fontSizeInput = document.getElementById('font-size');
+    const textColorInput = document.getElementById('text-color');
+    const applyStylingBtn = document.getElementById('apply-styling');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+    
+    let selectedTextbox = null;
 
     let pdfDoc = null;
     let pageViewport = null;
@@ -155,8 +202,12 @@
       tb.style.height = '30px';
       tb.innerText = 'Edit me';
       makeDraggableResizable(tb);
+      addTextboxClickHandler(tb);
       pdfContainer.appendChild(tb);
       tb.focus();
+      
+      // Show styling controls when text box is added
+      textStylingDiv.style.display = 'block';
     });
 
     // Draggable & resizable function
@@ -198,6 +249,63 @@
 
       // Also let resize via CSS resize handle (bottom-right), already enabled via style
     }
+
+    // Add click handler for text box selection
+    function addTextboxClickHandler(textbox) {
+      textbox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectTextbox(textbox);
+      });
+    }
+
+    // Select a text box
+    function selectTextbox(textbox) {
+      // Remove selection from all text boxes
+      document.querySelectorAll('.textbox').forEach(tb => {
+        tb.classList.remove('selected');
+      });
+      
+      // Select the clicked text box
+      textbox.classList.add('selected');
+      selectedTextbox = textbox;
+      
+      // Update styling controls with current values
+      fontFamilySelect.value = textbox.style.fontFamily || 'Arial';
+      fontSizeInput.value = parseInt(textbox.style.fontSize) || 12;
+      textColorInput.value = textbox.style.color || '#000000';
+      
+      // Enable apply button
+      applyStylingBtn.disabled = false;
+    }
+
+    // Apply styling to selected text box
+    applyStylingBtn.addEventListener('click', () => {
+      if (selectedTextbox) {
+        selectedTextbox.style.fontFamily = fontFamilySelect.value;
+        selectedTextbox.style.fontSize = fontSizeInput.value + 'px';
+        selectedTextbox.style.color = textColorInput.value;
+      }
+    });
+
+    // Clear selection
+    clearSelectionBtn.addEventListener('click', () => {
+      document.querySelectorAll('.textbox').forEach(tb => {
+        tb.classList.remove('selected');
+      });
+      selectedTextbox = null;
+      applyStylingBtn.disabled = true;
+    });
+
+    // Click on PDF container to deselect
+    pdfContainer.addEventListener('click', (e) => {
+      if (e.target === pdfContainer) {
+        document.querySelectorAll('.textbox').forEach(tb => {
+          tb.classList.remove('selected');
+        });
+        selectedTextbox = null;
+        applyStylingBtn.disabled = true;
+      }
+    });
 
     savePdfBtn.addEventListener('click', async () => {
       if (!pdfDoc) {
@@ -241,13 +349,24 @@
         const x = (left / pdfContainer.clientWidth) * width;
         const y = height - ((top + h) / pdfContainer.clientHeight) * height;
 
+        // Get styling from the text box
+        const fontSize = parseInt(tb.style.fontSize) || 12;
+        const fontFamily = tb.style.fontFamily || 'Arial';
+        const color = tb.style.color || '#000000';
+        
+        // Convert hex color to RGB
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16) / 255;
+        const g = parseInt(hex.substr(2, 2), 16) / 255;
+        const b = parseInt(hex.substr(4, 2), 16) / 255;
+
         page.drawText(text, {
           x,
           y,
-          size: 12,
-          color: PDFLib.rgb(0,0,1),
+          size: fontSize,
+          color: PDFLib.rgb(r, g, b),
           maxWidth: (w / pdfContainer.clientWidth) * width,
-          lineHeight: 14
+          lineHeight: fontSize * 1.2
         });
       });
 
