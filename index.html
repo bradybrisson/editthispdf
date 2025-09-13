@@ -238,7 +238,7 @@
         <input type="color" id="text-color" value="#000000" style="width: 36px; height: 36px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer;">
       </div>
       <div style="display: flex; gap: 8px; align-items: end;">
-        <button id="apply-styling" class="btn btn-primary" disabled>Apply to Selected</button>
+        <button id="apply-styling" class="btn btn-primary" disabled>Apply Changes</button>
         <button id="clear-selection" class="btn btn-outline">Clear Selection</button>
       </div>
     </div>
@@ -449,13 +449,25 @@
     }
 
     // Apply styling to selected text box
-    applyStylingBtn.addEventListener('click', () => {
+    function applyStylingToSelected() {
       if (selectedTextbox) {
         selectedTextbox.style.fontFamily = fontFamilySelect.value;
         selectedTextbox.style.fontSize = fontSizeInput.value + 'px';
         selectedTextbox.style.color = textColorInput.value;
       }
-    });
+    }
+
+    // Apply styling to selected text box (for button click)
+    applyStylingBtn.addEventListener('click', applyStylingToSelected);
+
+    // Live updates for font family
+    fontFamilySelect.addEventListener('change', applyStylingToSelected);
+
+    // Live updates for font size
+    fontSizeInput.addEventListener('input', applyStylingToSelected);
+
+    // Live updates for text color
+    textColorInput.addEventListener('input', applyStylingToSelected);
 
     // Clear selection
     clearSelectionBtn.addEventListener('click', () => {
