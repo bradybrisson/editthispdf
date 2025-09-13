@@ -732,12 +732,13 @@
         const scaleFactor = width / pdfContainer.clientWidth;
         const fontSize = htmlFontSize * scaleFactor;
 
-        const x = (left / pdfContainer.clientWidth) * width;
+        // Adjust X position to account for text box padding (2px left, 5px right)
+        const x = (left / pdfContainer.clientWidth) * width + (2 / pdfContainer.clientWidth) * width;
         // Fix Y positioning - account for text baseline and proper vertical alignment
         // PDF coordinates start from bottom-left, so we need to flip and adjust for text baseline
-        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.8);
+        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.3);
         
-        console.log(`Text scaling: HTML=${htmlFontSize}px, PDF=${fontSize}pt, Scale=${scaleFactor.toFixed(2)}`);
+        console.log(`Text positioning: HTML(${left}, ${top}) -> PDF(${x.toFixed(2)}, ${y.toFixed(2)}), Font: ${htmlFontSize}px->${fontSize.toFixed(2)}pt`);
         
         // Ensure color is a valid hex color
         if (!color.startsWith('#')) {
