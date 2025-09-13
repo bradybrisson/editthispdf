@@ -725,9 +725,17 @@
         const y = height - ((top + h) / pdfContainer.clientHeight) * height;
 
         // Get styling from the text box
-        const fontSize = parseInt(tb.style.fontSize) || 12;
+        const htmlFontSize = parseInt(tb.style.fontSize) || 12;
         const fontFamily = tb.style.fontFamily || 'Arial';
         let color = tb.style.color || '#000000';
+        
+        // Scale font size from HTML pixels to PDF points
+        // The HTML preview and PDF have different coordinate systems
+        // We need to scale the font size to match what the user sees
+        const scaleFactor = width / pdfContainer.clientWidth;
+        const fontSize = htmlFontSize * scaleFactor;
+        
+        console.log(`Text scaling: HTML=${htmlFontSize}px, PDF=${fontSize}pt, Scale=${scaleFactor.toFixed(2)}`);
         
         // Ensure color is a valid hex color
         if (!color.startsWith('#')) {
