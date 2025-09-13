@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF.js + Editable Annotation Demo</title>
+  <title>PDF.js + Whiteout + Editable Text Demo</title>
   <style>
     #pdf-container {
       position: relative;
@@ -15,24 +15,37 @@
       border: 1px solid black;
       display: block;
     }
-    .textbox {
+    .textbox, .whiteout {
       position: absolute;
-      border: 1px solid blue;
-      background: rgba(255,255,255,0.7);
+      border: 1px solid;
       padding: 4px;
-      min-width: 100px;
+      min-width: 50px;
       min-height: 20px;
-      cursor: move;
-      user-select: text;
       resize: both;
       overflow: auto;
+      box-sizing: border-box;
+      user-select: text;
+    }
+    .textbox {
+      border-color: blue;
+      background: rgba(255,255,255,0.7);
+      cursor: move;
+      z-index: 20; /* On top */
+      outline: none;
+    }
+    .whiteout {
+      background: white;
+      border-color: black;
+      cursor: move;
+      z-index: 10; /* Under textboxes */
     }
   </style>
 </head>
 <body>
-  <h1>PDF.js + Editable Text Annotation</h1>
+  <h1>PDF.js + Whiteout + Editable Text Boxes</h1>
 
   <input type="file" id="upload" accept="application/pdf" />
+  <button id="add-whiteout" disabled>Add Whiteout</button>
   <button id="add-textbox" disabled>Add Text Box</button>
   <button id="save-pdf" disabled>Save PDF with Annotations</button>
 
@@ -49,6 +62,7 @@
     const pdfjsLib = window['pdfjs-dist/build/pdf'];
 
     const uploadInput = document.getElementById('upload');
+    const addWhiteoutBtn = document.getElementById('add-whiteout');
     const addTextboxBtn = document.getElementById('add-textbox');
     const savePdfBtn = document.getElementById('save-pdf');
     const pdfContainer = document.getElementById('pdf-container');
@@ -58,9 +72,6 @@
     let pdfDoc = null;
     let scale = 1.5;
     let pageViewport = null;
-
-    // Store textbox info: {x, y, width, height, content}
-    let textboxes = [];
 
     uploadInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -72,11 +83,12 @@
       pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
 
       renderPage(1);
+      addWhiteoutBtn.disabled = false;
       addTextboxBtn.disabled = false;
       savePdfBtn.disabled = false;
-      textboxes = [];
-      // Remove old textboxes
-      document.querySelectorAll('.textbox').forEach(tb => tb.remove());
+
+      // Remove old whiteouts and textboxes
+      document.querySelectorAll('.whiteout, .textbox').forEach(el => el.remove());
     });
 
     async function renderPage(pageNum) {
@@ -94,24 +106,40 @@
       await page.render(renderContext).promise;
     }
 
-    // Add editable text box overlay
+    // Add whiteout box
+    addWhiteoutBtn.addEventListener('click', () => {
+      const whiteout = document.createElement('div');
+      whiteout.className = 'whiteout';
+      whiteout.style.left = '60px';
+      whiteout.style.top = '60px';
+      whiteout.style.width = '150px';
+      whiteout.style.height = '50px';
+
+      makeDraggableResizable(whiteout);
+
+      pdfContainer.appendChild(whiteout);
+    });
+
+    // Add editable text box overlay (always on top)
     addTextboxBtn.addEventListener('click', () => {
       const textbox = document.createElement('div');
       textbox.contentEditable = true;
       textbox.className = 'textbox';
-      textbox.style.left = '50px';
-      textbox.style.top = '50px';
+      textbox.style.left = '70px';
+      textbox.style.top = '70px';
       textbox.style.width = '150px';
       textbox.style.height = '30px';
       textbox.textContent = 'Edit me';
 
-      makeDraggable(textbox);
+      makeDraggableResizable(textbox);
 
       pdfContainer.appendChild(textbox);
+      // Bring textbox to front
+      textbox.style.zIndex = 20;
     });
 
-    // Make div draggable inside container
-    function makeDraggable(element) {
+    // Make div draggable and resizable inside container
+    function makeDraggableResizable(element) {
       let isDragging = false;
       let offsetX, offsetY;
 
@@ -145,30 +173,46 @@
     savePdfBtn.addEventListener('click', async () => {
       if (!pdfDoc) return alert('Load a PDF first');
 
-      // Get the first page in pdf-lib format
       const pdfBytes = await pdfDoc.getData();
       const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
 
       const page = pdfLibDoc.getPage(0);
       const { width, height } = page.getSize();
 
-      // Collect all textboxes data relative to PDF page
-      const pdfContainerRect = pdfContainer.getBoundingClientRect();
+      // Draw whiteouts first (to cover old text)
+      document.querySelectorAll('.whiteout').forEach(box => {
+        const left = parseFloat(box.style.left);
+        const top = parseFloat(box.style.top);
+        const boxWidth = box.offsetWidth;
+        const boxHeight = box.offsetHeight;
 
+        const x = (left / pdfContainer.clientWidth) * width;
+        const y = height - ((top + boxHeight) / pdfContainer.clientHeight) * height;
+        const w = (boxWidth / pdfContainer.clientWidth) * width;
+        const h = (boxHeight / pdfContainer.clientHeight) * height;
+
+        page.drawRectangle({
+          x, y,
+          width: w,
+          height: h,
+          color: PDFLib.rgb(1, 1, 1),
+          borderColor: PDFLib.rgb(1, 1, 1),
+          borderWidth: 0,
+          opacity: 1,
+        });
+      });
+
+      // Then draw textboxes on top
       document.querySelectorAll('.textbox').forEach(tb => {
-        // Calculate text position in PDF units (bottom-left origin)
         const left = parseFloat(tb.style.left);
         const top = parseFloat(tb.style.top);
         const tbWidth = tb.offsetWidth;
         const tbHeight = tb.offsetHeight;
         const text = tb.textContent;
 
-        // Convert from px (container) to PDF coordinates
-        // PDF origin is bottom-left, browser top-left, so invert Y
         const x = (left / pdfContainer.clientWidth) * width;
         const y = height - ((top + tbHeight) / pdfContainer.clientHeight) * height;
 
-        // Draw text on PDF page
         page.drawText(text, {
           x,
           y,
@@ -185,7 +229,7 @@
       const blob = new Blob([newPdfBytes], {type: 'application/pdf'});
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'annotated.pdf';
+      link.download = 'edited.pdf';
       link.click();
     });
   </script>
