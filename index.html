@@ -205,10 +205,36 @@
       max-width: 320px;
       max-height: 50px;
     }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 2em;
+    }
+    
+    .main-title {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 32px;
+      font-weight: 400;
+      color: #202124;
+      margin: 0 0 8px 0;
+      line-height: 1.2;
+    }
+    
+    .tagline {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      color: #5f6368;
+      margin: 0;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
-  <h1>Welcome to EditThisPDF.com</h1>
+  <div class="header">
+    <h1 class="main-title">Welcome to EditThisPDF.com</h1>
+    <p class="tagline">The only 100% free PDF editor without stealing your information or selling you s***</p>
+  </div>
   <div id="controls">
     <!-- Choose File Button -->
     <div class="file-input-wrapper">
