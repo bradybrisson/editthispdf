@@ -238,8 +238,7 @@
         <input type="color" id="text-color" value="#000000" style="width: 36px; height: 36px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer;">
       </div>
       <div style="display: flex; gap: 8px; align-items: end;">
-        <button id="apply-styling" class="btn btn-primary" disabled>Apply Changes</button>
-        <button id="clear-selection" class="btn btn-outline">Clear Selection</button>
+        <button id="reset-text" class="btn btn-outline" disabled>Reset Text</button>
       </div>
     </div>
   </div>
@@ -269,8 +268,7 @@
     const fontFamilySelect = document.getElementById('font-family');
     const fontSizeInput = document.getElementById('font-size');
     const textColorInput = document.getElementById('text-color');
-    const applyStylingBtn = document.getElementById('apply-styling');
-    const clearSelectionBtn = document.getElementById('clear-selection');
+    const resetTextBtn = document.getElementById('reset-text');
     
     let selectedTextbox = null;
 
@@ -444,8 +442,8 @@
       fontSizeInput.value = parseInt(textbox.style.fontSize) || 12;
       textColorInput.value = textbox.style.color || '#000000';
       
-      // Enable apply button
-      applyStylingBtn.disabled = false;
+      // Enable reset button
+      resetTextBtn.disabled = false;
     }
 
     // Apply styling to selected text box
@@ -457,9 +455,6 @@
       }
     }
 
-    // Apply styling to selected text box (for button click)
-    applyStylingBtn.addEventListener('click', applyStylingToSelected);
-
     // Live updates for font family
     fontFamilySelect.addEventListener('change', applyStylingToSelected);
 
@@ -469,13 +464,19 @@
     // Live updates for text color
     textColorInput.addEventListener('input', applyStylingToSelected);
 
-    // Clear selection
-    clearSelectionBtn.addEventListener('click', () => {
-      document.querySelectorAll('.textbox').forEach(tb => {
-        tb.classList.remove('selected');
-      });
-      selectedTextbox = null;
-      applyStylingBtn.disabled = true;
+    // Reset text to default settings
+    resetTextBtn.addEventListener('click', () => {
+      if (selectedTextbox) {
+        // Reset to default values
+        selectedTextbox.style.fontFamily = 'Arial';
+        selectedTextbox.style.fontSize = '12px';
+        selectedTextbox.style.color = '#000000';
+        
+        // Update the controls to reflect the reset
+        fontFamilySelect.value = 'Arial';
+        fontSizeInput.value = 12;
+        textColorInput.value = '#000000';
+      }
     });
 
     // Click on PDF container to deselect
@@ -485,7 +486,7 @@
           tb.classList.remove('selected');
         });
         selectedTextbox = null;
-        applyStylingBtn.disabled = true;
+        resetTextBtn.disabled = true;
       }
     });
 
