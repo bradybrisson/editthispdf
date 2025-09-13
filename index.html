@@ -34,6 +34,19 @@
       z-index: 10;
       min-width: 20px;
       min-height: 20px;
+      resize: both;
+      overflow: auto;
+    }
+    .whiteout::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-bottom: 8px solid #555;
+      cursor: se-resize;
     }
     .textbox {
       border: 1px solid blue;
@@ -63,7 +76,7 @@
     <button id="add-whiteout" disabled>Add Whiteout</button>
     <button id="add-textbox" disabled>Add Text Box</button>
     <div style="display: flex; gap: 0.5em; align-items: center; margin-top: 0.5em;">
-      <label for="filename">Filename:</label>
+      <label for="filename">New Filename:</label>
       <input type="text" id="filename" value="edited" placeholder="Enter filename" style="width: 150px;">
       <button id="save-pdf" disabled>Save PDF</button>
     </div>
@@ -223,12 +236,29 @@
       let startX, startY, startLeft, startTop;
 
       el.addEventListener('mousedown', (e) => {
+        // Don't interfere with text editing or whiteout resizing
+        if (el.classList.contains('textbox') && el.contentEditable === 'true') {
+          return; // Let text editing work normally
+        }
+        
+        // For whiteout, only drag if not on resize handle
+        if (el.classList.contains('whiteout')) {
+          const rect = el.getBoundingClientRect();
+          const handleSize = 15;
+          const isOnResizeHandle = (
+            e.clientX > rect.right - handleSize && 
+            e.clientY > rect.bottom - handleSize
+          );
+          if (isOnResizeHandle) {
+            return; // Let CSS resize work
+          }
+        }
+
         e.preventDefault();
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
         const rect = el.getBoundingClientRect();
-        // relative to container
         const contRect = pdfContainer.getBoundingClientRect();
         startLeft = rect.left - contRect.left;
         startTop = rect.top - contRect.top;
@@ -236,50 +266,35 @@
 
       document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        let x = e.clientX - pdfContainer.getBoundingClientRect().left - (startX - startLeft - pdfContainer.getBoundingClientRect().left);
-        let y = e.clientY - pdfContainer.getBoundingClientRect().top - (startY - startTop - pdfContainer.getBoundingClientRect().top);
-        // simpler: directly compute
-        x = e.clientX - startX + startLeft;
-        y = e.clientY - startY + startTop;
+        const x = e.clientX - startX + startLeft;
+        const y = e.clientY - startY + startTop;
 
         // Clip boundaries
-        x = Math.max(0, Math.min(x, pdfContainer.clientWidth - el.offsetWidth));
-        y = Math.max(0, Math.min(y, pdfContainer.clientHeight - el.offsetHeight));
+        const boundedX = Math.max(0, Math.min(x, pdfContainer.clientWidth - el.offsetWidth));
+        const boundedY = Math.max(0, Math.min(y, pdfContainer.clientHeight - el.offsetHeight));
 
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
+        el.style.left = boundedX + 'px';
+        el.style.top = boundedY + 'px';
       });
 
       document.addEventListener('mouseup', () => {
         isDragging = false;
       });
-
-      // Also let resize via CSS resize handle (bottom-right), already enabled via style
     }
 
     // Add click handler for text box selection
     function addTextboxClickHandler(textbox) {
-      textbox.addEventListener('click', (e) => {
-        // Always select the textbox when clicked
-        e.stopPropagation();
-        selectTextbox(textbox);
-      });
-      
-      // Handle focus for editing
+      // Only handle selection on focus, not on mousedown
       textbox.addEventListener('focus', () => {
         selectTextbox(textbox);
       });
       
-      // Handle double-click to start editing
-      textbox.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        textbox.focus();
-        // Select all text for easy replacement
-        const range = document.createRange();
-        range.selectNodeContents(textbox);
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
+      // Handle selection when clicking outside the text content
+      textbox.addEventListener('click', (e) => {
+        // Only select if clicking on the border/background, not the text
+        if (e.target === textbox) {
+          selectTextbox(textbox);
+        }
       });
     }
 
