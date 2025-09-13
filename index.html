@@ -25,7 +25,7 @@
       position: absolute;
       box-sizing: border-box;
       resize: both;
-      overflow: auto;
+      overflow: hidden;
       user-select: text;
     }
     .whiteout, .textbox {
@@ -38,7 +38,7 @@
       min-width: 20px;
       min-height: 20px;
       resize: both;
-      overflow: auto;
+      overflow: hidden;
     }
     .whiteout::after {
       content: '';
@@ -54,36 +54,36 @@
     
     .delete-btn {
       position: absolute;
-      top: -8px;
-      right: -8px;
-      width: 16px;
-      height: 16px;
+      top: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
       background: #d93025;
       border: 1px solid #b52d20;
       border-radius: 50%;
       color: white;
-      font-size: 10px;
+      font-size: 8px;
       font-weight: bold;
-      line-height: 14px;
+      line-height: 10px;
       text-align: center;
       cursor: pointer;
-      z-index: 100;
+      z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.4);
       transition: all 0.2s ease;
     }
     
     .delete-btn:hover {
       background: #b52d20;
-      transform: scale(1.1);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      transform: scale(1.2);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
     
     .delete-btn::before {
       content: '×';
-      font-size: 12px;
+      font-size: 10px;
       line-height: 1;
     }
     .textbox {
