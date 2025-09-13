@@ -236,11 +236,6 @@
       let startX, startY, startLeft, startTop;
 
       el.addEventListener('mousedown', (e) => {
-        // Don't interfere with text editing or whiteout resizing
-        if (el.classList.contains('textbox') && el.contentEditable === 'true') {
-          return; // Let text editing work normally
-        }
-        
         // For whiteout, only drag if not on resize handle
         if (el.classList.contains('whiteout')) {
           const rect = el.getBoundingClientRect();
@@ -254,7 +249,10 @@
           }
         }
 
-        e.preventDefault();
+        // For text boxes, allow dragging but don't prevent text editing
+        if (!el.classList.contains('textbox')) {
+          e.preventDefault();
+        }
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -352,10 +350,18 @@
         alert('No PDF loaded');
         return;
       }
-      const pdfBytes = await pdfDoc.getData();
-      const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
-      const page = pdfLibDoc.getPage(0);
-      const { width, height } = page.getSize();
+      
+      try {
+        console.log('Starting PDF save process...');
+        const pdfBytes = await pdfDoc.getData();
+        console.log('PDF bytes loaded, size:', pdfBytes.byteLength);
+        
+        const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
+        console.log('PDFLib document loaded');
+        
+        const page = pdfLibDoc.getPage(0);
+        const { width, height } = page.getSize();
+        console.log('Page size:', width, 'x', height);
 
       // Whiteouts first
       document.querySelectorAll('.whiteout').forEach(wo => {
@@ -410,19 +416,30 @@
         });
       });
 
-      const newPdfBytes = await pdfLibDoc.save();
-      const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      
-      // Use custom filename or default
-      const filename = filenameInput.value.trim() || 'edited';
-      const finalFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
-      link.download = finalFilename;
-      link.click();
-      
-      // Clean up the object URL
-      setTimeout(() => URL.revokeObjectURL(link.href), 100);
+        const newPdfBytes = await pdfLibDoc.save();
+        console.log('PDF saved, size:', newPdfBytes.byteLength);
+        
+        const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        
+        // Use custom filename or default
+        const filename = filenameInput.value.trim() || 'edited';
+        const finalFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+        link.download = finalFilename;
+        
+        console.log('Downloading PDF as:', finalFilename);
+        link.click();
+        
+        // Clean up the object URL
+        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+        
+        console.log('PDF download initiated successfully');
+        
+      } catch (error) {
+        console.error('Error saving PDF:', error);
+        alert('Error saving PDF: ' + error.message);
+      }
     });
   </script>
 </body>
