@@ -721,10 +721,7 @@
         const h = tb.offsetHeight;
         const text = tb.innerText;
 
-        const x = (left / pdfContainer.clientWidth) * width;
-        const y = height - ((top + h) / pdfContainer.clientHeight) * height;
-
-        // Get styling from the text box
+        // Get styling from the text box first
         const htmlFontSize = parseInt(tb.style.fontSize) || 12;
         const fontFamily = tb.style.fontFamily || 'Arial';
         let color = tb.style.color || '#000000';
@@ -734,6 +731,11 @@
         // We need to scale the font size to match what the user sees
         const scaleFactor = width / pdfContainer.clientWidth;
         const fontSize = htmlFontSize * scaleFactor;
+
+        const x = (left / pdfContainer.clientWidth) * width;
+        // Fix Y positioning - account for text baseline and proper vertical alignment
+        // PDF coordinates start from bottom-left, so we need to flip and adjust for text baseline
+        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.8);
         
         console.log(`Text scaling: HTML=${htmlFontSize}px, PDF=${fontSize}pt, Scale=${scaleFactor.toFixed(2)}`);
         
