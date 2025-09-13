@@ -99,8 +99,8 @@
       color: #000000;
       display: flex;
       align-items: center;
-      justify-content: center;
-      text-align: center;
+      justify-content: flex-start;
+      text-align: left;
     }
     .textbox.selected {
       border: 2px solid #ff6b6b;
@@ -736,8 +736,8 @@
         const scaleFactor = width / pdfContainer.clientWidth;
         const fontSize = htmlFontSize * scaleFactor;
 
-        // X position - use left edge + small padding offset for better alignment
-        const x = (left / pdfContainer.clientWidth) * width + (2 / pdfContainer.clientWidth) * width;
+        // X position - align to left edge of text box
+        const x = (left / pdfContainer.clientWidth) * width;
         // Y position - use bottom of text box + small baseline offset
         // PDF coordinates start from bottom-left, so we need to flip and adjust
         const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.2);
