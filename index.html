@@ -97,6 +97,10 @@
       font-family: Arial, sans-serif;
       font-size: 12px;
       color: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
     .textbox.selected {
       border: 2px solid #ff6b6b;
@@ -732,11 +736,11 @@
         const scaleFactor = width / pdfContainer.clientWidth;
         const fontSize = htmlFontSize * scaleFactor;
 
-        // X position - try without padding offset first
-        const x = (left / pdfContainer.clientWidth) * width;
-        // Fix Y positioning - account for text baseline and proper vertical alignment
-        // PDF coordinates start from bottom-left, so we need to flip and adjust for text baseline
-        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.3);
+        // X position - center the text in the box
+        const x = (left / pdfContainer.clientWidth) * width + ((w / 2) / pdfContainer.clientWidth) * width;
+        // Y position - center the text vertically in the box
+        // PDF coordinates start from bottom-left, so we need to flip and center
+        const y = height - ((top + h/2) / pdfContainer.clientHeight) * height + (fontSize * 0.3);
         
         console.log(`Text positioning: HTML(${left}, ${top}) -> PDF(${x.toFixed(2)}, ${y.toFixed(2)}), Font: ${htmlFontSize}px->${fontSize.toFixed(2)}pt`);
         
