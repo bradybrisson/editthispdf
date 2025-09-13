@@ -1,237 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>PDF.js + Whiteout + Editable Text Demo</title>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Advanced PDF Editor</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 1em;
+  }
+  #pdf-container {
+    position: relative;
+    border: 1px solid #ccc;
+    width: 600px;
+    height: 800px;
+    margin-bottom: 1em;
+    touch-action: none; /* prevent scrolling on touch drag */
+  }
+  #pdf-canvas {
+    display: block;
+    border: 1px solid black;
+  }
+  .annotation {
+    position: absolute;
+    box-sizing: border-box;
+    resize: both;
+    overflow: auto;
+    user-select: text;
+    touch-action: none;
+  }
+  .whiteout {
+    background: white;
+    border: 1px solid #555;
+    cursor: move;
+    z-index: 10;
+  }
+  .textbox {
+    border: 1px solid blue;
+    background: rgba(255,255,255,0.85);
+    cursor: move;
+    padding: 2px 5px;
+    outline: none;
+    z-index: 20;
+    min-width: 40px;
+    min-height: 20px;
+  }
+  #controls {
+    margin-bottom: 0.5em;
+  }
+  #page-controls {
+    margin: 0.5em 0;
+  }
+  label {
+    margin-right: 10px;
+  }
+  input[type="color"], input[type="number"], select {
+    margin-right: 10px;
+  }
+  @media(max-width: 650px) {
     #pdf-container {
-      position: relative;
-      border: 1px solid #ccc;
-      width: 600px;
-      height: 800px;
-      margin-bottom: 1em;
+      width: 100vw;
+      height: 100vh;
     }
-    #pdf-canvas {
-      border: 1px solid black;
-      display: block;
-    }
-    .textbox, .whiteout {
-      position: absolute;
-      border: 1px solid;
-      padding: 4px;
-      min-width: 50px;
-      min-height: 20px;
-      resize: both;
-      overflow: auto;
-      box-sizing: border-box;
-      user-select: text;
-    }
-    .textbox {
-      border-color: blue;
-      background: rgba(255,255,255,0.7);
-      cursor: move;
-      z-index: 20; /* On top */
-      outline: none;
-    }
-    .whiteout {
-      background: white;
-      border-color: black;
-      cursor: move;
-      z-index: 10; /* Under textboxes */
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <h1>PDF.js + Whiteout + Editable Text Boxes</h1>
 
+<h1>Advanced PDF Editor</h1>
+
+<div id="controls">
   <input type="file" id="upload" accept="application/pdf" />
   <button id="add-whiteout" disabled>Add Whiteout</button>
   <button id="add-textbox" disabled>Add Text Box</button>
-  <button id="save-pdf" disabled>Save PDF with Annotations</button>
+  <button id="save-pdf" disabled>Save PDF</button>
+</div>
 
-  <div id="pdf-container">
-    <canvas id="pdf-canvas"></canvas>
-  </div>
+<div id="text-style-controls" style="display:none; margin-bottom: 1em;">
+  <label>Font size: <input type="number" id="font-size" min="6" max="72" value="14" /></label>
+  <label>Color: <input type="color" id="font-color" value="#0000FF" /></label>
+  <label><input type="checkbox" id="bold"> Bold</label>
+  <label><input type="checkbox" id="italic"> Italic</label>
+  <button id="apply-style">Apply to Selected</button>
+</div>
 
-  <!-- PDF.js library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
-  <!-- pdf-lib for saving -->
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<div id="page-controls" style="display:none;">
+  <button id="prev-page">Previous Page</button>
+  <span id="page-info"></span>
+  <button id="next-page">Next Page</button>
+</div>
 
-  <script>
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+<div id="pdf-container">
+  <canvas id="pdf-canvas"></canvas>
+</div>
 
-    const uploadInput = document.getElementById('upload');
-    const addWhiteoutBtn = document.getElementById('add-whiteout');
-    const addTextboxBtn = document.getElementById('add-textbox');
-    const savePdfBtn = document.getElementById('save-pdf');
-    const pdfContainer = document.getElementById('pdf-container');
-    const canvas = document.getElementById('pdf-canvas');
-    const ctx = canvas.getContext('2d');
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 
-    let pdfDoc = null;
-    let scale = 1.5;
-    let pageViewport = null;
+<script>
+(async () => {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  const uploadInput = document.getElementById('upload');
+  const addWhiteoutBtn = document.getElementById('add-whiteout');
+  const addTextboxBtn = document.getElementById('add-textbox');
+  const savePdfBtn = document.getElementById('save-pdf');
 
-    uploadInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file || file.type !== 'application/pdf') {
-        alert('Please upload a PDF file');
-        return;
-      }
-      const arrayBuffer = await file.arrayBuffer();
-      pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  const fontSizeInput = document.getElementById('font-size');
+  const fontColorInput = document.getElementById('font-color');
+  const boldCheckbox = document.getElementById('bold');
+  const italicCheckbox = document.getElementById('italic');
+  const applyStyleBtn = document.getElementById('apply-style');
+  const textStyleControls = document.getElementById('text-style-controls');
 
-      renderPage(1);
-      addWhiteoutBtn.disabled = false;
-      addTextboxBtn.disabled = false;
-      savePdfBtn.disabled = false;
+  const prevPageBtn = document.getElementById('prev-page');
+  const nextPageBtn = document.getElementById('next-page');
+  const pageInfoSpan = document.getElementById('page-info');
+  const pageControls = document.getElementById('page-controls');
 
-      // Remove old whiteouts and textboxes
-      document.querySelectorAll('.whiteout, .textbox').forEach(el => el.remove());
-    });
+  const pdfContainer = document.getElementById('pdf-container');
+  const canvas = document.getElementById('pdf-canvas');
+  const ctx = canvas.getContext('2d');
 
-    async function renderPage(pageNum) {
-      const page = await pdfDoc.getPage(pageNum);
-      pageViewport = page.getViewport({ scale: scale });
-      canvas.width = pageViewport.width;
-      canvas.height = pageViewport.height;
-      pdfContainer.style.width = canvas.width + 'px';
-      pdfContainer.style.height = canvas.height + 'px';
+  let pdfDoc = null;
+  let currentPageNum = 1;
+  let totalPages = 0;
+  let scale = 1.5;
+  let pageViewport = null;
 
-      const renderContext = {
-        canvasContext: ctx,
-        viewport: pageViewport
-      };
-      await page.render(renderContext).promise;
+  // Store annotations by page number
+  // Each page: { whiteouts: [{left, top, width, height}], textboxes: [{left, top, width, height, content, style}] }
+  const annotations = {};
+
+  // Track selected textbox for styling
+  let selectedTextbox = null;
+
+  uploadInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+
+    totalPages = pdfDoc.numPages;
+    currentPageNum = 1;
+
+    // Clear stored annotations
+    for (let i = 1; i <= totalPages; i++) {
+      annotations[i] = { whiteouts: [], textboxes: [] };
     }
 
-    // Add whiteout box
-    addWhiteoutBtn.addEventListener('click', () => {
-      const whiteout = document.createElement('div');
-      whiteout.className = 'whiteout';
-      whiteout.style.left = '60px';
-      whiteout.style.top = '60px';
-      whiteout.style.width = '150px';
-      whiteout.style.height = '50px';
+    renderPage(currentPageNum);
+    addWhiteoutBtn.disabled = false;
+    addTextboxBtn.disabled = false;
+    savePdfBtn.disabled = false;
+    pageControls.style.display = totalPages > 1 ? 'block' : 'none';
 
-      makeDraggableResizable(whiteout);
+    updatePageInfo();
+  });
 
+  async function renderPage(pageNum) {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pageNum);
+    pageViewport = page.getViewport({ scale });
+
+    canvas.width = pageViewport.width;
+    canvas.height = pageViewport.height;
+    pdfContainer.style.width = canvas.width + 'px';
+    pdfContainer.style.height = canvas.height + 'px';
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: pageViewport
+    };
+    await page.render(renderContext).promise;
+
+    // Clear existing annotations from DOM
+    document.querySelectorAll('.annotation').forEach(el => el.remove());
+
+    // Render stored whiteouts and textboxes for this page
+    renderAnnotations(pageNum);
+    clearTextStyleSelection();
+  }
+
+  function renderAnnotations(pageNum) {
+    const pageAnn = annotations[pageNum];
+    if (!pageAnn) return;
+
+    pageAnn.whiteouts.forEach(wo => {
+      const whiteout = createWhiteoutElement(wo);
       pdfContainer.appendChild(whiteout);
     });
 
-    // Add editable text box overlay (always on top)
-    addTextboxBtn.addEventListener('click', () => {
-      const textbox = document.createElement('div');
-      textbox.contentEditable = true;
-      textbox.className = 'textbox';
-      textbox.style.left = '70px';
-      textbox.style.top = '70px';
-      textbox.style.width = '150px';
-      textbox.style.height = '30px';
-      textbox.textContent = 'Edit me';
-
-      makeDraggableResizable(textbox);
-
+    pageAnn.textboxes.forEach(tb => {
+      const textbox = createTextboxElement(tb);
       pdfContainer.appendChild(textbox);
-      // Bring textbox to front
-      textbox.style.zIndex = 20;
     });
+  }
 
-    // Make div draggable and resizable inside container
-    function makeDraggableResizable(element) {
-      let isDragging = false;
-      let offsetX, offsetY;
+  function createWhiteoutElement(data) {
+    const whiteout = document.createElement('div');
+    whiteout.className = 'annotation whiteout';
+    whiteout.style.left = data.left + 'px';
+    whiteout.style.top = data.top + 'px';
+    whiteout.style.width = data.width + 'px';
+    whiteout.style.height = data.height + 'px';
 
-      element.addEventListener('mousedown', e => {
-        if (e.target !== element) return;
-        isDragging = true;
-        offsetX = e.clientX - element.getBoundingClientRect().left;
-        offsetY = e.clientY - element.getBoundingClientRect().top;
-        element.style.cursor = 'grabbing';
-      });
+    makeDraggableResizable(whiteout, () => saveAnnotations());
 
-      document.addEventListener('mouseup', () => {
-        isDragging = false;
-        element.style.cursor = 'move';
-      });
+    return whiteout;
+  }
 
-      document.addEventListener('mousemove', e => {
-        if (!isDragging) return;
-        let x = e.clientX - offsetX - pdfContainer.getBoundingClientRect().left;
-        let y = e.clientY - offsetY - pdfContainer.getBoundingClientRect().top;
+  function createTextboxElement(data) {
+    const textbox = document.createElement('div');
+    textbox.className = 'annotation textbox';
+    textbox.contentEditable = true;
+    textbox.style.left = data.left + 'px';
+    textbox.style.top = data.top + 'px';
+    textbox.style.width = data.width + 'px';
+    textbox.style.height = data.height + 'px';
+    textbox.innerHTML = data.content || '';
 
-        // Keep inside container bounds
-        x = Math.max(0, Math.min(x, pdfContainer.clientWidth - element.offsetWidth));
-        y = Math.max(0, Math.min(y, pdfContainer.clientHeight - element.offsetHeight));
-
-        element.style.left = x + 'px';
-        element.style.top = y + 'px';
-      });
+    // Apply styles
+    if(data.style) {
+      textbox.style.color = data.style.color || '#0000FF';
+      textbox.style.fontSize = (data.style.fontSize || 14) + 'px';
+      textbox.style.fontWeight = data.style.bold ? 'bold' : 'normal';
+      textbox.style.fontStyle = data.style.italic ? 'italic' : 'normal';
     }
 
-    savePdfBtn.addEventListener('click', async () => {
-      if (!pdfDoc) return alert('Load a PDF first');
+    makeDraggableResizable(textbox, () => saveAnnotations());
 
-      const pdfBytes = await pdfDoc.getData();
-      const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
-
-      const page = pdfLibDoc.getPage(0);
-      const { width, height } = page.getSize();
-
-      // Draw whiteouts first (to cover old text)
-      document.querySelectorAll('.whiteout').forEach(box => {
-        const left = parseFloat(box.style.left);
-        const top = parseFloat(box.style.top);
-        const boxWidth = box.offsetWidth;
-        const boxHeight = box.offsetHeight;
-
-        const x = (left / pdfContainer.clientWidth) * width;
-        const y = height - ((top + boxHeight) / pdfContainer.clientHeight) * height;
-        const w = (boxWidth / pdfContainer.clientWidth) * width;
-        const h = (boxHeight / pdfContainer.clientHeight) * height;
-
-        page.drawRectangle({
-          x, y,
-          width: w,
-          height: h,
-          color: PDFLib.rgb(1, 1, 1),
-          borderColor: PDFLib.rgb(1, 1, 1),
-          borderWidth: 0,
-          opacity: 1,
-        });
-      });
-
-      // Then draw textboxes on top
-      document.querySelectorAll('.textbox').forEach(tb => {
-        const left = parseFloat(tb.style.left);
-        const top = parseFloat(tb.style.top);
-        const tbWidth = tb.offsetWidth;
-        const tbHeight = tb.offsetHeight;
-        const text = tb.textContent;
-
-        const x = (left / pdfContainer.clientWidth) * width;
-        const y = height - ((top + tbHeight) / pdfContainer.clientHeight) * height;
-
-        page.drawText(text, {
-          x,
-          y,
-          size: 12,
-          color: PDFLib.rgb(0, 0, 1),
-          maxWidth: (tbWidth / pdfContainer.clientWidth) * width,
-          lineHeight: 14,
-        });
-      });
-
-      const newPdfBytes = await pdfLibDoc.save();
-
-      // Download new PDF
-      const blob = new Blob([newPdfBytes], {type: 'application/pdf'});
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'edited.pdf';
-      link.click();
+    textbox.addEventListener('focus', () => {
+      selectedTextbox = textbox;
+      showTextStyleSelection(textbox);
     });
-  </script>
-</body>
-</html>
+    textbox.addEventListener('blur', () => {
+      saveAnnotations();
+    });
+
+    return textbox;
+  }
+
+  addWhiteoutBtn.addEventListener('click', () => {
+    if (!pdfDoc) return;
+    const whiteoutData = {
+      left: 60,
+      top: 60,
+      width: 150,
+      height: 50
+    };
+    annotations[currentPageNum].whiteouts.push(whiteoutData);
+
+    const whiteout = createWhiteoutElement(whiteoutData);
+    pdfContainer.appendChild(whiteout);
+    saveAnnotations();
+  });
+
+  addTextboxBtn.addEventListener('click', () => {
+    if (!pdfDoc) return;
+    const textboxData = {
+      left: 70,
+      top: 70,
+      width: 150,
+      height: 30,
+      content: 'Edit me',
+      style: {
+        fontSize: 14,
+        color: '#0000FF',
+        bold: false,
+        italic: false
+      }
+    };
+    annotations[currentPageNum].textboxes.push(textboxData);
+
+    const textbox = createTextboxElement(textboxData);
+    pdfContainer.appendChild(textbox);
+    saveAnnotations();
+    textbox.focus();
+  });
+
+  // Save annotation positions and content back to annotations object
+  function saveAnnotations() {
+    if (!pdfDoc) return;
+    const pageAnn = annotations[currentPageNum];
+    if (!pageAnn) return;
+
+    // Clear current arrays and refill from DOM
+    pageAnn.whiteouts = [];
+    pageAnn.textboxes = [];
+
+    // Whiteouts
+    document.querySelectorAll('.whiteout').forEach(wo => {
+      pageAnn.whiteouts.push({
+        left: parseFloat(wo.style.left),
+        top: parseFloat(wo.style.top),
+        width: wo.offsetWidth,
+        height: wo.offsetHeight
+      });
+    });
+
+    // Textboxes
+    document.querySelectorAll('.textbox').forEach(tb => {
+      pageAnn.textboxes.push({
+        left: parseFloat(tb.style.left),
+        top: parseFloat(tb.style.top),
+        width: tb.offsetWidth,
+        height: tb.offsetHeight,
+        content: tb.innerHTML,
+        style: {
+          fontSize: parseInt(tb.style.fontSize) || 14,
+          color: tb.style.color || '#0000FF',
+          bold: tb.style.fontWeight === 'bold',
+          italic: tb.style.fontStyle === 'italic'
+        }
+      });
+    });
+  }
+
+  function updatePageInfo() {
+    pageInfoSpan.textContent = `Page ${
