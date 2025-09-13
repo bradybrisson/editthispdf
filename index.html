@@ -398,13 +398,21 @@
         // Get styling from the text box
         const fontSize = parseInt(tb.style.fontSize) || 12;
         const fontFamily = tb.style.fontFamily || 'Arial';
-        const color = tb.style.color || '#000000';
+        let color = tb.style.color || '#000000';
         
-        // Convert hex color to RGB
+        // Ensure color is a valid hex color
+        if (!color.startsWith('#')) {
+          color = '#000000';
+        }
+        if (color.length !== 7) {
+          color = '#000000';
+        }
+        
+        // Convert hex color to RGB with validation
         const hex = color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16) / 255;
-        const g = parseInt(hex.substr(2, 2), 16) / 255;
-        const b = parseInt(hex.substr(4, 2), 16) / 255;
+        const r = Math.max(0, Math.min(1, (parseInt(hex.substr(0, 2), 16) || 0) / 255));
+        const g = Math.max(0, Math.min(1, (parseInt(hex.substr(2, 2), 16) || 0) / 255));
+        const b = Math.max(0, Math.min(1, (parseInt(hex.substr(4, 2), 16) || 0) / 255));
 
         page.drawText(text, {
           x,
