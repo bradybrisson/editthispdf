@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simple PDF Editor</title>
+</head>
+<body>
+  <h1>Simple PDF Editor</h1>
+
+  <input type="file" id="pdf-upload" />
+  <button id="edit-button">Edit PDF</button>
+  <button id="download-button" disabled>Download PDF</button>
+  <br><br>
+  <button id="subscribe-button">Subscribe for $5/month</button>
+
+  <script src="https://unpkg.com/pdf-lib"></script>
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <script>
+    const stripe = Stripe("pk_test_YOUR_PUBLIC_KEY"); // Replace with your Stripe public key
+    const priceId = "price_YOUR_PRICE_ID"; // Replace with your Stripe Price ID
+
+    let editedPdfBytes;
+
+    document.getElementById("edit-button").addEventListener("click", async () => {
+      const file = document.getElementById("pdf-upload").files[0];
+      if (!file) return alert("Upload a PDF first.");
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+      const page = pdfDoc.getPages()[0];
+
+      page.drawText("Edited by Simple PDF Editor!", {
+        x: 50, y: 700, size: 18
+      });
+
+      editedPdfBytes = await pdfDoc.save();
+      document.getElementById("download-button").disabled = false;
+    });
+
+    document.getElementById("download-button").addEventListener("click", () => {
+      const isPaid = localStorage.getItem("isPaid");
+
+      if (isPaid === "true") {
+        const blob = new Blob([editedPdfBytes], { type: "application/pdf" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "edited.pdf";
+        link.click();
+      } else {
+        alert("You need a subscription to download. Click Subscribe first.");
+      }
+    });
+
+    document.getElementById("subscribe-button").addEventListener("click", async () => {
+      const { error } = await stripe.redirectToCheckout({
+        lineItems: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        successUrl: window.location.href + "?subscribed=true",
+        cancelUrl: window.location.href
+      });
+      if (error) console.error(error.message);
+    });
+
+    if (window.location.search.includes("subscribed=true")) {
+      localStorage.setItem("isPaid", "true");
+      alert("Subscription successful! You can now download edited PDFs.");
+    }
+  </script>
+</body>
+</html>
