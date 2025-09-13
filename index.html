@@ -32,6 +32,8 @@
       background: white;
       border: 1px solid #555;
       z-index: 10;
+      min-width: 20px;
+      min-height: 20px;
     }
     .textbox {
       border: 1px solid blue;
@@ -60,7 +62,11 @@
     <input type="file" id="upload" accept="application/pdf" />
     <button id="add-whiteout" disabled>Add Whiteout</button>
     <button id="add-textbox" disabled>Add Text Box</button>
-    <button id="save-pdf" disabled>Save PDF</button>
+    <div style="display: flex; gap: 0.5em; align-items: center; margin-top: 0.5em;">
+      <label for="filename">Filename:</label>
+      <input type="text" id="filename" value="edited" placeholder="Enter filename" style="width: 150px;">
+      <button id="save-pdf" disabled>Save PDF</button>
+    </div>
   </div>
   
   <div id="text-styling" style="display: none; margin: 1em 0; padding: 1em; border: 1px solid #ccc; background: #f9f9f9;">
@@ -108,6 +114,7 @@
     const addWhiteoutBtn = document.getElementById('add-whiteout');
     const addTextboxBtn = document.getElementById('add-textbox');
     const savePdfBtn = document.getElementById('save-pdf');
+    const filenameInput = document.getElementById('filename');
     const pdfContainer = document.getElementById('pdf-container');
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
@@ -253,8 +260,26 @@
     // Add click handler for text box selection
     function addTextboxClickHandler(textbox) {
       textbox.addEventListener('click', (e) => {
+        // Always select the textbox when clicked
         e.stopPropagation();
         selectTextbox(textbox);
+      });
+      
+      // Handle focus for editing
+      textbox.addEventListener('focus', () => {
+        selectTextbox(textbox);
+      });
+      
+      // Handle double-click to start editing
+      textbox.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        textbox.focus();
+        // Select all text for easy replacement
+        const range = document.createRange();
+        range.selectNodeContents(textbox);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
       });
     }
 
@@ -374,8 +399,15 @@
       const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'edited.pdf';
+      
+      // Use custom filename or default
+      const filename = filenameInput.value.trim() || 'edited';
+      const finalFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+      link.download = finalFilename;
       link.click();
+      
+      // Clean up the object URL
+      setTimeout(() => URL.revokeObjectURL(link.href), 100);
     });
   </script>
 </body>
