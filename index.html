@@ -99,6 +99,9 @@
       color: #000000;
       text-align: left;
       line-height: 1.2;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
     }
     .textbox.selected {
       border: 2px solid #ff6b6b;
@@ -736,9 +739,9 @@
 
         // X position - align to left edge of text box
         const x = (left / pdfContainer.clientWidth) * width;
-        // Y position - use bottom of text box + small baseline offset
+        // Y position - text is at bottom of text box, so use bottom edge + baseline offset
         // PDF coordinates start from bottom-left, so we need to flip and adjust
-        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.2);
+        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.8);
         
         console.log(`Text positioning: HTML(${left}, ${top}) -> PDF(${x.toFixed(2)}, ${y.toFixed(2)}), Font: ${htmlFontSize}px->${fontSize.toFixed(2)}pt`);
         
