@@ -2,70 +2,192 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Simple PDF Editor</title>
+  <title>PDF.js + Editable Annotation Demo</title>
+  <style>
+    #pdf-container {
+      position: relative;
+      border: 1px solid #ccc;
+      width: 600px;
+      height: 800px;
+      margin-bottom: 1em;
+    }
+    #pdf-canvas {
+      border: 1px solid black;
+      display: block;
+    }
+    .textbox {
+      position: absolute;
+      border: 1px solid blue;
+      background: rgba(255,255,255,0.7);
+      padding: 4px;
+      min-width: 100px;
+      min-height: 20px;
+      cursor: move;
+      user-select: text;
+      resize: both;
+      overflow: auto;
+    }
+  </style>
 </head>
 <body>
-  <h1>Simple PDF Editor</h1>
+  <h1>PDF.js + Editable Text Annotation</h1>
 
-  <input type="file" id="pdf-upload" />
-  <button id="edit-button">Edit PDF</button>
-  <button id="download-button" disabled>Download PDF</button>
-  <br><br>
-  <button id="subscribe-button">Subscribe for $5/month</button>
+  <input type="file" id="upload" accept="application/pdf" />
+  <button id="add-textbox" disabled>Add Text Box</button>
+  <button id="save-pdf" disabled>Save PDF with Annotations</button>
 
-  <script src="https://unpkg.com/pdf-lib"></script>
-  <script src="https://js.stripe.com/v3/"></script>
+  <div id="pdf-container">
+    <canvas id="pdf-canvas"></canvas>
+  </div>
+
+  <!-- PDF.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+  <!-- pdf-lib for saving -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 
   <script>
-    const stripe = Stripe("pk_test_YOUR_PUBLIC_KEY"); // Replace with your Stripe public key
-    const priceId = "price_YOUR_PRICE_ID"; // Replace with your Stripe Price ID
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
 
-    let editedPdfBytes;
+    const uploadInput = document.getElementById('upload');
+    const addTextboxBtn = document.getElementById('add-textbox');
+    const savePdfBtn = document.getElementById('save-pdf');
+    const pdfContainer = document.getElementById('pdf-container');
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
 
-    document.getElementById("edit-button").addEventListener("click", async () => {
-      const file = document.getElementById("pdf-upload").files[0];
-      if (!file) return alert("Upload a PDF first.");
+    let pdfDoc = null;
+    let scale = 1.5;
+    let pageViewport = null;
 
-      const arrayBuffer = await file.arrayBuffer();
-      const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-      const page = pdfDoc.getPages()[0];
+    // Store textbox info: {x, y, width, height, content}
+    let textboxes = [];
 
-      page.drawText("Edited by Simple PDF Editor!", {
-        x: 50, y: 700, size: 18
-      });
-
-      editedPdfBytes = await pdfDoc.save();
-      document.getElementById("download-button").disabled = false;
-    });
-
-    document.getElementById("download-button").addEventListener("click", () => {
-      const isPaid = localStorage.getItem("isPaid");
-
-      if (isPaid === "true") {
-        const blob = new Blob([editedPdfBytes], { type: "application/pdf" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "edited.pdf";
-        link.click();
-      } else {
-        alert("You need a subscription to download. Click Subscribe first.");
+    uploadInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || file.type !== 'application/pdf') {
+        alert('Please upload a PDF file');
+        return;
       }
+      const arrayBuffer = await file.arrayBuffer();
+      pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+
+      renderPage(1);
+      addTextboxBtn.disabled = false;
+      savePdfBtn.disabled = false;
+      textboxes = [];
+      // Remove old textboxes
+      document.querySelectorAll('.textbox').forEach(tb => tb.remove());
     });
 
-    document.getElementById("subscribe-button").addEventListener("click", async () => {
-      const { error } = await stripe.redirectToCheckout({
-        lineItems: [{ price: priceId, quantity: 1 }],
-        mode: "subscription",
-        successUrl: window.location.href + "?subscribed=true",
-        cancelUrl: window.location.href
-      });
-      if (error) console.error(error.message);
-    });
+    async function renderPage(pageNum) {
+      const page = await pdfDoc.getPage(pageNum);
+      pageViewport = page.getViewport({ scale: scale });
+      canvas.width = pageViewport.width;
+      canvas.height = pageViewport.height;
+      pdfContainer.style.width = canvas.width + 'px';
+      pdfContainer.style.height = canvas.height + 'px';
 
-    if (window.location.search.includes("subscribed=true")) {
-      localStorage.setItem("isPaid", "true");
-      alert("Subscription successful! You can now download edited PDFs.");
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: pageViewport
+      };
+      await page.render(renderContext).promise;
     }
+
+    // Add editable text box overlay
+    addTextboxBtn.addEventListener('click', () => {
+      const textbox = document.createElement('div');
+      textbox.contentEditable = true;
+      textbox.className = 'textbox';
+      textbox.style.left = '50px';
+      textbox.style.top = '50px';
+      textbox.style.width = '150px';
+      textbox.style.height = '30px';
+      textbox.textContent = 'Edit me';
+
+      makeDraggable(textbox);
+
+      pdfContainer.appendChild(textbox);
+    });
+
+    // Make div draggable inside container
+    function makeDraggable(element) {
+      let isDragging = false;
+      let offsetX, offsetY;
+
+      element.addEventListener('mousedown', e => {
+        if (e.target !== element) return;
+        isDragging = true;
+        offsetX = e.clientX - element.getBoundingClientRect().left;
+        offsetY = e.clientY - element.getBoundingClientRect().top;
+        element.style.cursor = 'grabbing';
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+        element.style.cursor = 'move';
+      });
+
+      document.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        let x = e.clientX - offsetX - pdfContainer.getBoundingClientRect().left;
+        let y = e.clientY - offsetY - pdfContainer.getBoundingClientRect().top;
+
+        // Keep inside container bounds
+        x = Math.max(0, Math.min(x, pdfContainer.clientWidth - element.offsetWidth));
+        y = Math.max(0, Math.min(y, pdfContainer.clientHeight - element.offsetHeight));
+
+        element.style.left = x + 'px';
+        element.style.top = y + 'px';
+      });
+    }
+
+    savePdfBtn.addEventListener('click', async () => {
+      if (!pdfDoc) return alert('Load a PDF first');
+
+      // Get the first page in pdf-lib format
+      const pdfBytes = await pdfDoc.getData();
+      const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
+
+      const page = pdfLibDoc.getPage(0);
+      const { width, height } = page.getSize();
+
+      // Collect all textboxes data relative to PDF page
+      const pdfContainerRect = pdfContainer.getBoundingClientRect();
+
+      document.querySelectorAll('.textbox').forEach(tb => {
+        // Calculate text position in PDF units (bottom-left origin)
+        const left = parseFloat(tb.style.left);
+        const top = parseFloat(tb.style.top);
+        const tbWidth = tb.offsetWidth;
+        const tbHeight = tb.offsetHeight;
+        const text = tb.textContent;
+
+        // Convert from px (container) to PDF coordinates
+        // PDF origin is bottom-left, browser top-left, so invert Y
+        const x = (left / pdfContainer.clientWidth) * width;
+        const y = height - ((top + tbHeight) / pdfContainer.clientHeight) * height;
+
+        // Draw text on PDF page
+        page.drawText(text, {
+          x,
+          y,
+          size: 12,
+          color: PDFLib.rgb(0, 0, 1),
+          maxWidth: (tbWidth / pdfContainer.clientWidth) * width,
+          lineHeight: 14,
+        });
+      });
+
+      const newPdfBytes = await pdfLibDoc.save();
+
+      // Download new PDF
+      const blob = new Blob([newPdfBytes], {type: 'application/pdf'});
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'annotated.pdf';
+      link.click();
+    });
   </script>
 </body>
 </html>
