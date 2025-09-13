@@ -65,29 +65,161 @@
       box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
     }
     #controls {
-      margin-bottom: 0.5em;
+      margin-bottom: 1em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e8eaed;
+    }
+    
+    /* Google Material Design Button Styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background-color: #1557b0;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 2px 6px 2px rgba(60,64,67,.15);
+    }
+    
+    .btn-secondary {
+      background-color: white;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #f8f9fa;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    
+    .btn-outline:hover:not(:disabled) {
+      background-color: #f8f9fa;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .file-input {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+    }
+    
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background-color: white;
+      color: #1a73e8;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    
+    .file-input-label:hover {
+      background-color: #f8f9fa;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    }
+    
+    .save-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    
+    .filename-input {
+      padding: 8px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      min-width: 120px;
+      height: 36px;
+      box-sizing: border-box;
+    }
+    
+    .filename-input:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
     }
   </style>
 </head>
 <body>
   <h1>Welcome to EditThisPDF.com</h1>
   <div id="controls">
-    <input type="file" id="upload" accept="application/pdf" />
-    <button id="add-whiteout" disabled>Add Whiteout</button>
-    <button id="add-textbox" disabled>Add Text Box</button>
-    <div style="display: flex; gap: 0.5em; align-items: center; margin-top: 0.5em;">
-      <label for="filename">New Filename:</label>
-      <input type="text" id="filename" value="edited" placeholder="Enter filename" style="width: 150px;">
-      <button id="save-pdf" disabled>Save PDF</button>
+    <!-- Choose File Button -->
+    <div class="file-input-wrapper">
+      <input type="file" id="upload" class="file-input" accept="application/pdf" />
+      <label for="upload" class="file-input-label">Choose File</label>
+    </div>
+    
+    <!-- Add Text Box Button -->
+    <button id="add-textbox" class="btn btn-secondary" disabled>Add Text Box</button>
+    
+    <!-- Add Whiteout Button -->
+    <button id="add-whiteout" class="btn btn-secondary" disabled>Add Whiteout</button>
+    
+    <!-- Save Section -->
+    <div class="save-section">
+      <input type="text" id="filename" class="filename-input" value="edited" placeholder="New filename">
+      <button id="save-pdf" class="btn btn-primary" disabled>Save PDF</button>
     </div>
   </div>
   
-  <div id="text-styling" style="display: none; margin: 1em 0; padding: 1em; border: 1px solid #ccc; background: #f9f9f9;">
-    <h3>Text Styling</h3>
-    <div style="display: flex; gap: 1em; align-items: center; flex-wrap: wrap;">
-      <div>
-        <label for="font-family">Font Family:</label>
-        <select id="font-family">
+  <div id="text-styling" style="display: none; margin: 1em 0; padding: 16px; border: 1px solid #e8eaed; background: #f8f9fa; border-radius: 8px;">
+    <h3 style="margin: 0 0 12px 0; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 16px; font-weight: 500; color: #202124;">Text Styling</h3>
+    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="font-family" style="font-size: 12px; font-weight: 500; color: #5f6368;">Font Family</label>
+        <select id="font-family" style="padding: 8px 12px; border: 1px solid #dadce0; border-radius: 4px; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 14px; min-width: 140px; height: 36px; box-sizing: border-box;">
           <option value="Arial">Arial</option>
           <option value="Times New Roman">Times New Roman</option>
           <option value="Courier New">Courier New</option>
@@ -97,17 +229,17 @@
           <option value="Comic Sans MS">Comic Sans MS</option>
         </select>
       </div>
-      <div>
-        <label for="font-size">Font Size:</label>
-        <input type="number" id="font-size" value="12" min="8" max="72" style="width: 60px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="font-size" style="font-size: 12px; font-weight: 500; color: #5f6368;">Font Size</label>
+        <input type="number" id="font-size" value="12" min="8" max="72" style="padding: 8px 12px; border: 1px solid #dadce0; border-radius: 4px; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 14px; width: 80px; height: 36px; box-sizing: border-box;">
       </div>
-      <div>
-        <label for="text-color">Text Color:</label>
-        <input type="color" id="text-color" value="#000000">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="text-color" style="font-size: 12px; font-weight: 500; color: #5f6368;">Text Color</label>
+        <input type="color" id="text-color" value="#000000" style="width: 36px; height: 36px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer;">
       </div>
-      <div>
-        <button id="apply-styling" disabled>Apply to Selected</button>
-        <button id="clear-selection">Clear Selection</button>
+      <div style="display: flex; gap: 8px; align-items: end;">
+        <button id="apply-styling" class="btn btn-primary" disabled>Apply to Selected</button>
+        <button id="clear-selection" class="btn btn-outline">Clear Selection</button>
       </div>
     </div>
   </div>
