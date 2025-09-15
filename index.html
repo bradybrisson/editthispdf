@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="google-adsense-account" content="ca-pub-7841015598955655">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7841015598955655"
+       crossorigin="anonymous"></script>
   <title>PDF Editor + Whiteout/Text Boxes</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 1em; }
@@ -22,7 +25,7 @@
       position: absolute;
       box-sizing: border-box;
       resize: both;
-      overflow: auto;
+      overflow: hidden;
       user-select: text;
     }
     .whiteout, .textbox {
@@ -32,6 +35,56 @@
       background: white;
       border: 1px solid #555;
       z-index: 10;
+      min-width: 20px;
+      min-height: 20px;
+      resize: both;
+      overflow: hidden;
+    }
+    .whiteout::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-bottom: 8px solid #555;
+      cursor: se-resize;
+    }
+    
+    .delete-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      background: #d93025;
+      border: 1px solid #b52d20;
+      border-radius: 50%;
+      color: white;
+      font-size: 8px;
+      font-weight: bold;
+      line-height: 10px;
+      text-align: center;
+      cursor: pointer;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+      transition: all 0.2s ease;
+    }
+    
+    .delete-btn:hover {
+      background: #b52d20;
+      transform: scale(1.2);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .delete-btn::before {
+      content: '×';
+      font-size: 10px;
+      line-height: 1;
     }
     .textbox {
       border: 1px solid blue;
@@ -41,19 +94,299 @@
       z-index: 20;
       min-width: 40px;
       min-height: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #000000;
+      text-align: left;
+      line-height: 1.2;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+    }
+    .textbox.selected {
+      border: 2px solid #ff6b6b;
+      box-shadow: 0 0 5px rgba(255, 107, 107, 0.5);
     }
     #controls {
-      margin-bottom: 0.5em;
+      margin-bottom: 1em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e8eaed;
+    }
+    
+    /* Google Material Design Button Styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background-color: #1557b0;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 2px 6px 2px rgba(60,64,67,.15);
+    }
+    
+    .btn-secondary {
+      background-color: white;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #f8f9fa;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      color: #1a73e8;
+      border: 1px solid #dadce0;
+    }
+    
+    .btn-outline:hover:not(:disabled) {
+      background-color: #f8f9fa;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .file-input {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+    }
+    
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background-color: white;
+      color: #1a73e8;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 36px;
+      box-sizing: border-box;
+    }
+    
+    .file-input-label:hover {
+      background-color: #f8f9fa;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+    }
+    
+    .save-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    
+    .filename-input {
+      padding: 8px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      min-width: 120px;
+      height: 36px;
+      box-sizing: border-box;
+    }
+    
+    .filename-input:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+    }
+    
+    .adsense-banner {
+      display: flex;
+      align-items: center;
+      min-height: 36px;
+      margin-right: 12px;
+    }
+    
+    .adsense-banner ins {
+      max-width: 320px;
+      max-height: 50px;
+    }
+    
+    .donation-section {
+      display: flex;
+      align-items: center;
+      margin-right: 12px;
+    }
+    
+    .donation-section form {
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 2em;
+    }
+    
+    .main-title {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 32px;
+      font-weight: 400;
+      color: #202124;
+      margin: 0 0 8px 0;
+      line-height: 1.2;
+    }
+    
+    .tagline {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      color: #5f6368;
+      margin: 0 0 16px 0;
+      line-height: 1.4;
+    }
+    
+    .donation-section-header {
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    
+    .donation-section-header form {
+      margin: 0;
+    }
+    
+    .donation-button-large {
+      max-height: 80px !important;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    
+    .donation-button-large:hover {
+      transform: scale(1.05);
     }
   </style>
 </head>
 <body>
-  <h1>Welcome to EditThisPDF.com</h1>
+  <div class="header">
+    <h1 class="main-title">Welcome to EditThisPDF.com</h1>
+    <p class="tagline">The only 100% free PDF editor without stealing your information</p>
+    
+    <!-- PayPal Donation Button -->
+    <div class="donation-section-header">
+      <form action="https://www.paypal.com/donate" method="post" target="_top">
+        <input type="hidden" name="business" value="VXB3X3WP7ND6A" />
+        <input type="hidden" name="no_recurring" value="0" />
+        <input type="hidden" name="item_name" value="Provide everyday people with a free platform to edit pdf documents instead of paying or giving your information to Adobe." />
+        <input type="hidden" name="currency_code" value="USD" />
+        <input type="image" src="https://pics.paypal.com/00/s/OGJhMzMwODQtZWFlOC00MjI0LWE4ZTMtZTVlMWNjYjJjMDk0/file.PNG" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" class="donation-button-large" />
+        <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+      </form>
+    </div>
+  </div>
   <div id="controls">
-    <input type="file" id="upload" accept="application/pdf" />
-    <button id="add-whiteout" disabled>Add Whiteout</button>
-    <button id="add-textbox" disabled>Add Text Box</button>
-    <button id="save-pdf" disabled>Save PDF</button>
+    <!-- Choose File Button -->
+    <div class="file-input-wrapper">
+      <input type="file" id="upload" class="file-input" accept="application/pdf" />
+      <label for="upload" class="file-input-label">Choose PDF to Edit</label>
+    </div>
+    
+    <!-- Add Whiteout Button -->
+    <button id="add-whiteout" class="btn btn-secondary" disabled>Add Whiteout</button>
+    
+    <!-- Add Text Box Button -->
+    <button id="add-textbox" class="btn btn-secondary" disabled>Add Text Box</button>
+    
+    <!-- AdSense Banner -->
+    <div class="adsense-banner">
+      <!-- pdfeditor -->
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-7841015598955655"
+           data-ad-slot="3964590612"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+      <!-- Debug info -->
+      <div style="font-size: 12px; color: #666; margin-top: 5px;">
+        Ad Status: <span id="ad-status">Loading...</span>
+        <br>
+        <div style="font-size: 10px; color: #999; margin-top: 2px;">
+          If no ad shows: Check AdSense approval, HTTPS requirement, and live server deployment
+        </div>
+      </div>
+    </div>
+    
+    <!-- Save Section -->
+    <div class="save-section">
+      <label for="filename" style="font-size: 14px; font-weight: 500; color: #202124; white-space: nowrap;">New Filename</label>
+      <input type="text" id="filename" class="filename-input" value="edited" placeholder="New filename">
+      <button id="save-pdf" class="btn btn-primary" disabled>Save PDF</button>
+    </div>
+  </div>
+  
+  <div id="text-styling" style="display: none; margin: 1em 0; padding: 16px; border: 1px solid #e8eaed; background: #f8f9fa; border-radius: 8px;">
+    <h3 style="margin: 0 0 12px 0; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 16px; font-weight: 500; color: #202124;">Text Styling</h3>
+    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="font-family" style="font-size: 12px; font-weight: 500; color: #5f6368;">Font Family</label>
+        <select id="font-family" style="padding: 8px 12px; border: 1px solid #dadce0; border-radius: 4px; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 14px; min-width: 140px; height: 36px; box-sizing: border-box;">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Helvetica">Helvetica</option>
+          <option value="Comic Sans MS">Comic Sans MS</option>
+        </select>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="font-size" style="font-size: 12px; font-weight: 500; color: #5f6368;">Font Size</label>
+        <input type="number" id="font-size" value="12" min="8" max="72" style="padding: 8px 12px; border: 1px solid #dadce0; border-radius: 4px; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-size: 14px; width: 80px; height: 36px; box-sizing: border-box;">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label for="text-color" style="font-size: 12px; font-weight: 500; color: #5f6368;">Text Color</label>
+        <input type="color" id="text-color" value="#000000" style="width: 36px; height: 36px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer;">
+      </div>
+      <div style="display: flex; gap: 8px; align-items: end;">
+        <button id="reset-text" class="btn btn-outline" disabled>Reset Text</button>
+      </div>
+    </div>
   </div>
   
   <div id="pdf-container">
@@ -71,11 +404,40 @@
     const addWhiteoutBtn = document.getElementById('add-whiteout');
     const addTextboxBtn = document.getElementById('add-textbox');
     const savePdfBtn = document.getElementById('save-pdf');
+    const filenameInput = document.getElementById('filename');
     const pdfContainer = document.getElementById('pdf-container');
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
+    
+    // Text styling controls
+    const textStylingDiv = document.getElementById('text-styling');
+    const fontFamilySelect = document.getElementById('font-family');
+    const fontSizeInput = document.getElementById('font-size');
+    const textColorInput = document.getElementById('text-color');
+    const resetTextBtn = document.getElementById('reset-text');
+    
+    let selectedTextbox = null;
 
     let pdfDoc = null;
+    
+    // AdSense debugging
+    window.addEventListener('load', function() {
+      const adStatus = document.getElementById('ad-status');
+      const adElement = document.querySelector('.adsbygoogle');
+      
+      setTimeout(() => {
+        if (adElement && adElement.innerHTML.trim() === '') {
+          adStatus.textContent = 'No ad loaded - Check AdSense settings';
+          adStatus.style.color = '#d93025';
+        } else if (adElement && adElement.innerHTML.trim() !== '') {
+          adStatus.textContent = 'Ad loaded successfully';
+          adStatus.style.color = '#137333';
+        } else {
+          adStatus.textContent = 'Ad element not found';
+          adStatus.style.color = '#d93025';
+        }
+      }, 3000);
+    });
     let pageViewport = null;
     let scale = 1.5;
 
@@ -140,6 +502,16 @@
       wo.style.top = '60px';
       wo.style.width = '150px';
       wo.style.height = '50px';
+      
+      // Add delete button
+      const deleteBtn = document.createElement('div');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        wo.remove();
+      });
+      wo.appendChild(deleteBtn);
+      
       makeDraggableResizable(wo);
       pdfContainer.appendChild(wo);
     });
@@ -154,9 +526,27 @@
       tb.style.width = '150px';
       tb.style.height = '30px';
       tb.innerText = 'Edit me';
+      
+      // Add delete button
+      const deleteBtn = document.createElement('div');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tb.remove();
+        // Hide styling controls if no text boxes remain
+        if (document.querySelectorAll('.textbox').length <= 1) {
+          textStylingDiv.style.display = 'none';
+        }
+      });
+      tb.appendChild(deleteBtn);
+      
       makeDraggableResizable(tb);
+      addTextboxClickHandler(tb);
       pdfContainer.appendChild(tb);
       tb.focus();
+      
+      // Show styling controls when text box is added
+      textStylingDiv.style.display = 'block';
     });
 
     // Draggable & resizable function
@@ -165,12 +555,27 @@
       let startX, startY, startLeft, startTop;
 
       el.addEventListener('mousedown', (e) => {
-        e.preventDefault();
+        // For whiteout, only drag if not on resize handle
+        if (el.classList.contains('whiteout')) {
+          const rect = el.getBoundingClientRect();
+          const handleSize = 15;
+          const isOnResizeHandle = (
+            e.clientX > rect.right - handleSize && 
+            e.clientY > rect.bottom - handleSize
+          );
+          if (isOnResizeHandle) {
+            return; // Let CSS resize work
+          }
+        }
+
+        // For text boxes, allow dragging but don't prevent text editing
+        if (!el.classList.contains('textbox')) {
+          e.preventDefault();
+        }
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
         const rect = el.getBoundingClientRect();
-        // relative to container
         const contRect = pdfContainer.getBoundingClientRect();
         startLeft = rect.left - contRect.left;
         startTop = rect.top - contRect.top;
@@ -178,36 +583,119 @@
 
       document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        let x = e.clientX - pdfContainer.getBoundingClientRect().left - (startX - startLeft - pdfContainer.getBoundingClientRect().left);
-        let y = e.clientY - pdfContainer.getBoundingClientRect().top - (startY - startTop - pdfContainer.getBoundingClientRect().top);
-        // simpler: directly compute
-        x = e.clientX - startX + startLeft;
-        y = e.clientY - startY + startTop;
+        const x = e.clientX - startX + startLeft;
+        const y = e.clientY - startY + startTop;
 
         // Clip boundaries
-        x = Math.max(0, Math.min(x, pdfContainer.clientWidth - el.offsetWidth));
-        y = Math.max(0, Math.min(y, pdfContainer.clientHeight - el.offsetHeight));
+        const boundedX = Math.max(0, Math.min(x, pdfContainer.clientWidth - el.offsetWidth));
+        const boundedY = Math.max(0, Math.min(y, pdfContainer.clientHeight - el.offsetHeight));
 
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
+        el.style.left = boundedX + 'px';
+        el.style.top = boundedY + 'px';
       });
 
       document.addEventListener('mouseup', () => {
         isDragging = false;
       });
-
-      // Also let resize via CSS resize handle (bottom-right), already enabled via style
     }
+
+    // Add click handler for text box selection
+    function addTextboxClickHandler(textbox) {
+      // Only handle selection on focus, not on mousedown
+      textbox.addEventListener('focus', () => {
+        selectTextbox(textbox);
+      });
+      
+      // Handle selection when clicking outside the text content
+      textbox.addEventListener('click', (e) => {
+        // Only select if clicking on the border/background, not the text
+        if (e.target === textbox) {
+          selectTextbox(textbox);
+        }
+      });
+    }
+
+    // Select a text box
+    function selectTextbox(textbox) {
+      // Remove selection from all text boxes
+      document.querySelectorAll('.textbox').forEach(tb => {
+        tb.classList.remove('selected');
+      });
+      
+      // Select the clicked text box
+      textbox.classList.add('selected');
+      selectedTextbox = textbox;
+      
+      // Update styling controls with current values
+      fontFamilySelect.value = textbox.style.fontFamily || 'Arial';
+      fontSizeInput.value = parseInt(textbox.style.fontSize) || 12;
+      textColorInput.value = textbox.style.color || '#000000';
+      
+      // Enable reset button
+      resetTextBtn.disabled = false;
+    }
+
+    // Apply styling to selected text box
+    function applyStylingToSelected() {
+      if (selectedTextbox) {
+        selectedTextbox.style.fontFamily = fontFamilySelect.value;
+        selectedTextbox.style.fontSize = fontSizeInput.value + 'px';
+        selectedTextbox.style.color = textColorInput.value;
+      }
+    }
+
+    // Live updates for font family
+    fontFamilySelect.addEventListener('change', applyStylingToSelected);
+
+    // Live updates for font size
+    fontSizeInput.addEventListener('input', applyStylingToSelected);
+
+    // Live updates for text color
+    textColorInput.addEventListener('input', applyStylingToSelected);
+
+    // Reset text to default settings
+    resetTextBtn.addEventListener('click', () => {
+      if (selectedTextbox) {
+        // Reset to default values
+        selectedTextbox.style.fontFamily = 'Arial';
+        selectedTextbox.style.fontSize = '12px';
+        selectedTextbox.style.color = '#000000';
+        
+        // Update the controls to reflect the reset
+        fontFamilySelect.value = 'Arial';
+        fontSizeInput.value = 12;
+        textColorInput.value = '#000000';
+      }
+    });
+
+    // Click on PDF container to deselect
+    pdfContainer.addEventListener('click', (e) => {
+      if (e.target === pdfContainer) {
+        document.querySelectorAll('.textbox').forEach(tb => {
+          tb.classList.remove('selected');
+        });
+        selectedTextbox = null;
+        resetTextBtn.disabled = true;
+      }
+    });
 
     savePdfBtn.addEventListener('click', async () => {
       if (!pdfDoc) {
         alert('No PDF loaded');
         return;
       }
-      const pdfBytes = await pdfDoc.getData();
-      const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
-      const page = pdfLibDoc.getPage(0);
-      const { width, height } = page.getSize();
+      
+      try {
+        console.log('Starting PDF save process...');
+        const pdfBytes = await pdfDoc.getData();
+        console.log('PDF bytes loaded, size:', pdfBytes.byteLength);
+        
+        const pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
+        console.log('PDFLib document loaded');
+        
+        const page = pdfLibDoc.getPage(0);
+        const { width, height } = page.getSize();
+        console.log('Page size:', width, 'x', height);
 
       // Whiteouts first
       document.querySelectorAll('.whiteout').forEach(wo => {
@@ -238,25 +726,73 @@
         const h = tb.offsetHeight;
         const text = tb.innerText;
 
+        // Get styling from the text box first
+        const htmlFontSize = parseInt(tb.style.fontSize) || 12;
+        const fontFamily = tb.style.fontFamily || 'Arial';
+        let color = tb.style.color || '#000000';
+        
+        // Scale font size from HTML pixels to PDF points
+        // The HTML preview and PDF have different coordinate systems
+        // We need to scale the font size to match what the user sees
+        const scaleFactor = width / pdfContainer.clientWidth;
+        const fontSize = htmlFontSize * scaleFactor;
+
+        // X position - align to left edge of text box
         const x = (left / pdfContainer.clientWidth) * width;
-        const y = height - ((top + h) / pdfContainer.clientHeight) * height;
+        // Y position - text is at bottom of text box, so use bottom edge + baseline offset
+        // PDF coordinates start from bottom-left, so we need to flip and adjust
+        const y = height - ((top + h) / pdfContainer.clientHeight) * height + (fontSize * 0.8);
+        
+        console.log(`Text positioning: HTML(${left}, ${top}) -> PDF(${x.toFixed(2)}, ${y.toFixed(2)}), Font: ${htmlFontSize}px->${fontSize.toFixed(2)}pt`);
+        
+        // Ensure color is a valid hex color
+        if (!color.startsWith('#')) {
+          color = '#000000';
+        }
+        if (color.length !== 7) {
+          color = '#000000';
+        }
+        
+        // Convert hex color to RGB with validation
+        const hex = color.replace('#', '');
+        const r = Math.max(0, Math.min(1, (parseInt(hex.substr(0, 2), 16) || 0) / 255));
+        const g = Math.max(0, Math.min(1, (parseInt(hex.substr(2, 2), 16) || 0) / 255));
+        const b = Math.max(0, Math.min(1, (parseInt(hex.substr(4, 2), 16) || 0) / 255));
 
         page.drawText(text, {
           x,
           y,
-          size: 12,
-          color: PDFLib.rgb(0,0,1),
+          size: fontSize,
+          color: PDFLib.rgb(r, g, b),
           maxWidth: (w / pdfContainer.clientWidth) * width,
-          lineHeight: 14
+          lineHeight: fontSize * 1.2
         });
       });
 
-      const newPdfBytes = await pdfLibDoc.save();
-      const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'edited.pdf';
-      link.click();
+        const newPdfBytes = await pdfLibDoc.save();
+        console.log('PDF saved, size:', newPdfBytes.byteLength);
+        
+        const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        
+        // Use custom filename or default
+        const filename = filenameInput.value.trim() || 'edited';
+        const finalFilename = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+        link.download = finalFilename;
+        
+        console.log('Downloading PDF as:', finalFilename);
+        link.click();
+        
+        // Clean up the object URL
+        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+        
+        console.log('PDF download initiated successfully');
+        
+      } catch (error) {
+        console.error('Error saving PDF:', error);
+        alert('Error saving PDF: ' + error.message);
+      }
     });
   </script>
 </body>
