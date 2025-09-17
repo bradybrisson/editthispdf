@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/bradybrisson/editthispdf
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/editthispdf
 
 jobs:
   build-and-deploy:
